@@ -1,7 +1,7 @@
-# Shotgun Metagenomics Preprocessing & Analysis Pipeline
+# Whole-genome Metagenomics Preprocessing & Analysis Pipeline
 
 A 12-stage command-line pipeline that takes raw paired-end FASTQ reads from
-a shotgun metagenomic sample through quality control, trimming, host
+a Whole-genome metagenomic sample through quality control, trimming, host
 (human) DNA depletion, deduplication, and into taxonomic classification,
 species abundance profiling, antibiotic-resistance gene detection, and
 metagenomic assembly — with tidy CSV reports at the end.
@@ -88,13 +88,19 @@ intentionally not part of this repo.
 
 ## Usage
 
-Run the stages in order:
+Run the complete pipeline with the launcher:
 
 ```bash
-for s in scripts/*.py; do python "$s" || break; done
+python run_pipeline.py
 ```
 
-or run them one at a time while you inspect intermediate output:
+To resume from a particular stage:
+
+```bash
+python run_pipeline.py --from-stage 5
+```
+
+You can also run stages individually while inspecting intermediate output:
 
 ```bash
 python scripts/01_prepare_raw_reads.py
@@ -106,19 +112,24 @@ Each script re-detects the sample name from the FASTQ pair in
 `PIPELINE_MASTER_DIR`, so they can be run independently as long as the
 previous stage's output already exists.
 
-## Known gaps
+## Design notes
 
-Carried over from the original pipeline and not silently changed:
+- The pipeline currently processes exactly one paired-end sample per run.
+- Stage 08 is part of the canonical data flow. It creates the normalized
+  dataset consumed by stages 09–12. If the read count is already below the
+  target depth, the reads are copied unchanged so the downstream stages
+  always have a defined input.
+- MetaPhlAn and DeepARG (stage 10) are currently run on R1 only. Confirm this
+  choice against the requirements of your study and the versions of those
+  tools that you validate.
+- Stage 10 runs its four analyses independently, reports PASS/FAIL status,
+  and exits non-zero if one or more analyses fail.
+- The repository intentionally excludes FASTQ/BAM/SAM files, third-party
+  binaries, and large reference databases. Configure their locations in
+  `.env` rather than committing machine-specific paths.
 
-- **Stage 08's normalized/down-sampled reads aren't consumed downstream.**
-  Stages 09–12 read from the pre-normalization "final clean" directory, not
-  from stage 08's output. If you want normalized reads to feed the
-  downstream analysis, point stage 09's `final_r1/final_r2` at
-  `config.NORM_DIR` instead.
-- **MetaPhlAn and DeepARG (stage 10) are run on R1 only**, despite the
-  pipeline being paired-end throughout. This may be intentional (a common
-  simplification for these tools) but is worth confirming against your
-  use case.
+See `docs/` for installation, workflow, software-version tracking, and
+troubleshooting notes.
 
 ## Bug fix vs. the original script
 

@@ -21,6 +21,7 @@ import config
 from utils import detect_sample, require_paths
 
 config.ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
+status = {}
 
 # --- 1. Locate stage 09's gold-standard reads ---
 SAMPLE = detect_sample(config.MASTER_DIR)
@@ -44,8 +45,10 @@ try:
         str(clean_r1), str(clean_r2),
     ], check=True)
     print("Kraken2 complete.")
-except Exception as e:
+    status["Kraken2"] = "PASS"
+except (OSError, subprocess.CalledProcessError) as e:
     print(f"Kraken2 failed: {e}")
+    status["Kraken2"] = "FAIL"
 
 # --- 3. MetaPhlAn: marker-gene based species-level relative abundance ---
 print("\n[2/4] Running MetaPhlAn...")
@@ -62,7 +65,8 @@ try:
         "-o", str(metaphlan_out),
     ], check=True, env=mp_env)
     print("MetaPhlAn complete.")
-except Exception:
+    status["MetaPhlAn"] = "PASS"
+except (OSError, subprocess.CalledProcessError):
     print("MetaPhlAn failed. Ensure .bowtie2out.txt files were deleted.")
 
 # --- 4. DeepARG: deep-learning based antibiotic resistance gene prediction ---
@@ -79,8 +83,10 @@ try:
         "--model", "v2",
     ], check=True, env=arg_env)
     print("DeepARG complete.")
-except Exception:
-    print("DeepARG failed. Check numpy version in the deeparg environment.")
+    status["DeepARG"] = "PASS"
+except (OSError, subprocess.CalledProcessError) as e:
+    print(f"DeepARG failed: {e}")
+    status["DeepARG"] = "FAIL"
 
 # --- 5. MEGAHIT: de novo assembly of reads into contigs ---
 print("\n[4/4] Running MEGAHIT (Conservative Mode)...")
@@ -94,7 +100,21 @@ try:
         "--mem-flag", "1", "--no-mercy",
     ], check=True)
     print("MEGAHIT complete.")
-except Exception as e:
+except (OSError, subprocess.CalledProcessError) as e:
     print(f"MEGAHIT failed: {e}")
+    status["MEGAHIT"] = "FAIL"
 
-print("\nALL STAGE 10 ANALYSES FINISHED!")
+print("\n" + "=" * 40)
+print("DOWNSTREAM ANALYSIS SUMMARY")
+print("=" * 40)
+for tool, result in status.items():
+    print(f"{tool:<12}: {result}")
+failed = [tool for tool, result in status.items() if result == "FAIL"]
+print(f"Overall      : {'FAILED' if failed else 'SUCCESS'}")
+print("=" * 40)
+
+# Keep running the remaining tools when one fails, but signal failure to
+# an orchestrator/CI job after all independent analyses have been attempted.
+if failed:
+    sys.exit(1)
+

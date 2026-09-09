@@ -1,7 +1,7 @@
 """Stage 9: Final pre-processed dataset validation and gold-standard packaging."""
 
+import gzip
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -11,13 +11,13 @@ from utils import count_reads_gz, detect_sample, require_paths
 
 config.GOLD_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- 1. Locate stage 07's final clean reads (see stage 08's note on normalization) ---
+# --- 1. Locate stage 08's canonical normalized dataset ---
 SAMPLE = detect_sample(config.MASTER_DIR)
-final_r1 = config.FINAL_CLEAN_DIR / f"{SAMPLE}_clean_R1.fastq.gz"
-final_r2 = config.FINAL_CLEAN_DIR / f"{SAMPLE}_clean_R2.fastq.gz"
+final_r1 = config.NORM_DIR / f"{SAMPLE}_R1_norm.fastq.gz"
+final_r2 = config.NORM_DIR / f"{SAMPLE}_R2_norm.fastq.gz"
 raw_r1 = config.RAW_DIR / f"{SAMPLE}_R1.fastq"
 require_paths(final_r1, final_r2)
-print("Final paired FASTQs detected.")
+print("Canonical normalized paired FASTQs detected.")
 
 final_count_r1 = count_reads_gz(final_r1)
 final_count_r2 = count_reads_gz(final_r2)
@@ -42,18 +42,27 @@ if raw_count:
     retention = (final_count_r1 / raw_count) * 100
     print(f"Data retention: {retention:.2f}% of raw reads retained")
 
-# --- 3. Quick sanity metric: mean read length after all the trimming/filtering ---
+# --- 3. Quick sanity metric: mean read length after all processing ---
 print("Computing average read length...")
-result = subprocess.run(
-    f"zcat {final_r1} | awk 'NR%4==2 {{sum+=length($0); n++}} END {{if(n>0) print sum/n}}'",
-    shell=True, stdout=subprocess.PIPE, check=True,
-)
-print(f"Average read length: {result.stdout.decode().strip()} bp")
+total_bases = 0
+sequence_count = 0
+with gzip.open(final_r1, "rt") as fh:
+    for line_number, line in enumerate(fh):
+        if line_number % 4 == 1:
+            total_bases += len(line.strip())
+            sequence_count += 1
+
+if sequence_count == 0:
+    sys.exit("ERROR: No sequences found in final R1 FASTQ")
+mean_length = total_bases / sequence_count
+print(f"Average read length: {mean_length:.2f} bp")
 
 # --- 4. Copy the validated reads into GOLD_DIR -- this is what stage 10 analyzes ---
 print("\nCreating final gold-standard copies...")
-shutil.copy(final_r1, config.GOLD_DIR / final_r1.name)
-shutil.copy(final_r2, config.GOLD_DIR / final_r2.name)
+gold_r1 = config.GOLD_DIR / f"{SAMPLE}_clean_R1.fastq.gz"
+gold_r2 = config.GOLD_DIR / f"{SAMPLE}_clean_R2.fastq.gz"
+shutil.copy2(final_r1, gold_r1)
+shutil.copy2(final_r2, gold_r2)
 print(f"Gold-standard dataset saved to: {config.GOLD_DIR}")
 
 for f in config.GOLD_DIR.iterdir():

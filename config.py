@@ -45,11 +45,9 @@ GOLD_DIR = MASTER_DIR / "13_Gold_Standard_Dataset"
 ANALYSIS_DIR = MASTER_DIR / "14_Analysis_Results"
 RAW_REPORTS_DIR = ANALYSIS_DIR / "raw_reports"
 
-# NOTE: In the original script, stage 12 (read normalization / down-sampling)
-# produced output that stages 13-14 never consumed -- they read straight from
-# the pre-normalization "final clean" directory instead. That gap is preserved
-# here (not silently "fixed") because it's not clear which was intended.
-# See README.md "Known gaps" section before you rely on normalized output.
+# Stage 08 creates the canonical normalized dataset consumed by stages 09-12.
+# If the read count is already below TARGET_READ_DEPTH, stage 08 copies the
+# reads unchanged so the pipeline remains continuous.
 
 # -------------------------------------------------------------------
 # Third-party binaries / scripts

@@ -1,11 +1,9 @@
-"""
-Stage 8: Read normalization (down-sampling) to a target depth.
+"""Stage 8: Read normalization (down-sampling) to a target depth.
 
-NOTE (preserved from the original pipeline): this stage's output
-(config.NORM_DIR) is NOT consumed by stages 9-14 below -- they read
-straight from config.FINAL_CLEAN_DIR instead. That gap existed in the
-original script and hasn't been changed here; if you intend normalized
-reads to feed downstream analysis, update stage 09/10 accordingly.
+The normalized dataset is the canonical input for the final validation and
+downstream analysis stages. If the dataset is already below the target
+depth, the paired reads are copied unchanged so the pipeline remains
+continuous and deterministic.
 """
 
 import subprocess
@@ -50,6 +48,16 @@ if total_reads > config.TARGET_READ_DEPTH:
     r2_tmp.with_suffix(".fastq.gz").rename(norm_r2)
     print("Normalization complete")
 elif total_reads > 0:
-    print("Total reads already below target depth. Skipping sub-sampling.")
+    print("Total reads already below target depth. Keeping all reads.")
+    import shutil
+    shutil.copy2(final_gz_r1, norm_r1)
+    shutil.copy2(final_gz_r2, norm_r2)
+    print("Normalization not required; canonical normalized dataset created.")
 else:
-    print("No reads detected. Skipping normalization.")
+    sys.exit("ERROR: No reads detected; cannot create normalized dataset.")
+
+for fq in [norm_r1, norm_r2]:
+    if not fq.exists() or fq.stat().st_size == 0:
+        sys.exit(f"ERROR: Normalized FASTQ missing or empty: {fq}")
+
+print(f"Normalized dataset ready: {norm_r1.name}, {norm_r2.name}")

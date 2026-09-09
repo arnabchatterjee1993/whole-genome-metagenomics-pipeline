@@ -49,8 +49,18 @@ def md5sum(file_path):
 
 
 print("MD5 checksums:")
-print(md5sum(r1_src))
-print(md5sum(r2_src))
+r1_md5 = md5sum(r1_src)
+r2_md5 = md5sum(r2_src)
+print(r1_md5)
+print(r2_md5)
+
+# Save checksums alongside the staged raw reads for reproducibility.
+checksum_file = config.RAW_DIR / "checksums.md5"
+checksum_file.write_text(
+    f"{r1_md5.split()[0]}  {r1_src.name}\n"
+    f"{r2_md5.split()[0]}  {r2_src.name}\n"
+)
+print(f"Checksums saved to: {checksum_file}")
 
 # --- 4. Copy the decompressed FASTQs into RAW_DIR, the input for stage 02 ---
 r1_dest = config.RAW_DIR / r1_src.name
