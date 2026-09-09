@@ -90,7 +90,7 @@ def generate_wide_abundance_matrix(tax_file, output_path):
     matrix_df = species_tax.pivot_table(
         index=None, columns="matrix_header", values="reads_at_taxon", aggfunc="sum"
     )
-    matrix_df.index = ["Sample_1"]
+    matrix_df.index = [SAMPLE]
     matrix_df.fillna(0).to_csv(output_path)
     print(f"Saved taxonomy matrix with {matrix_df.shape[1]} species")
 

@@ -2,9 +2,8 @@
 Stage 10: Integrated downstream analyses - Kraken2, MetaPhlAn, DeepARG, MEGAHIT.
 
 NOTE: MetaPhlAn and DeepARG are run on R1 only, even though the pipeline is
-paired-end throughout. That was true of the original script too. If you want
-paired-mode profiling, pass a comma-separated "r1,r2" string to MetaPhlAn's
-positional input and adjust the DeepARG call accordingly.
+paired-end throughout. This is an explicit current design choice and should be
+validated against the versions and study requirements before changing it.
 
 Each of the four tools runs in its own try/except so that one tool failing
 (e.g. a missing database) doesn't stop the others from running.
@@ -66,8 +65,9 @@ try:
     ], check=True, env=mp_env)
     print("MetaPhlAn complete.")
     status["MetaPhlAn"] = "PASS"
-except (OSError, subprocess.CalledProcessError):
-    print("MetaPhlAn failed. Ensure .bowtie2out.txt files were deleted.")
+except (OSError, subprocess.CalledProcessError) as e:
+    print(f"MetaPhlAn failed: {e}")
+    status["MetaPhlAn"] = "FAIL"
 
 # --- 4. DeepARG: deep-learning based antibiotic resistance gene prediction ---
 print("\n[3/4] Running DeepARG...")
@@ -100,6 +100,7 @@ try:
         "--mem-flag", "1", "--no-mercy",
     ], check=True)
     print("MEGAHIT complete.")
+    status["MEGAHIT"] = "PASS"
 except (OSError, subprocess.CalledProcessError) as e:
     print(f"MEGAHIT failed: {e}")
     status["MEGAHIT"] = "FAIL"

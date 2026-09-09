@@ -16,7 +16,10 @@ SAMPLE = detect_sample(config.MASTER_DIR)
 print("Converting analysis reports to CSV format...")
 
 # --- Kraken2 -> CSV: report has no header row, so column names are supplied here ---
-kraken_report = config.ANALYSIS_DIR / f"{SAMPLE}.kraken.report"
+kraken_name = f"{SAMPLE}.kraken.report"
+kraken_report = config.ANALYSIS_DIR / kraken_name
+if not kraken_report.exists():
+    kraken_report = config.RAW_REPORTS_DIR / kraken_name
 if kraken_report.exists():
     cols = ["percentage", "reads_at_taxon", "reads_directly_at_taxon", "rank", "taxid", "name"]
     df = pd.read_csv(kraken_report, sep="\t", header=None, names=cols)
@@ -30,7 +33,10 @@ else:
 # --- MetaPhlAn -> CSV ---
 # Uses read_metaphlan_profile() (utils.py) rather than a plain pd.read_csv(comment='#')
 # call, which would silently corrupt the output -- see that function's docstring.
-metaphlan_file = config.ANALYSIS_DIR / f"{SAMPLE}_metaphlan_profile.txt"
+metaphlan_name = f"{SAMPLE}_metaphlan_profile.txt"
+metaphlan_file = config.ANALYSIS_DIR / metaphlan_name
+if not metaphlan_file.exists():
+    metaphlan_file = config.RAW_REPORTS_DIR / metaphlan_name
 if metaphlan_file.exists():
     df_meta = read_metaphlan_profile(metaphlan_file)
     out_csv = config.ANALYSIS_DIR / f"{SAMPLE}_species_abundance.csv"
@@ -40,7 +46,10 @@ else:
     print("MetaPhlAn profile not found.")
 
 # --- DeepARG -> CSV ---
-deeparg_file = config.ANALYSIS_DIR / f"{SAMPLE}_resistome.mapping.ARG"
+deeparg_name = f"{SAMPLE}_resistome.mapping.ARG"
+deeparg_file = config.ANALYSIS_DIR / deeparg_name
+if not deeparg_file.exists():
+    deeparg_file = config.RAW_REPORTS_DIR / deeparg_name
 if deeparg_file.exists():
     df_arg = pd.read_csv(deeparg_file, sep="\t")
     out_csv = config.ANALYSIS_DIR / f"{SAMPLE}_antibiotic_resistance.csv"
@@ -56,7 +65,9 @@ if contigs_file.exists():
 else:
     print("MEGAHIT assembly file not found.")
 
-# --- Organize: move the raw/intermediate text reports out of the way, into raw_reports/ ---
+# --- Organize: move raw/intermediate text reports into raw_reports/. ---
+# If a report was already organized by an earlier run, leave it where it is
+# rather than treating the rerun as an error.
 print("\nOrganizing raw files...")
 files_to_move = [
     f"{SAMPLE}.kraken.report",
@@ -67,9 +78,12 @@ files_to_move = [
     f"{SAMPLE}_resistome.potential.ARG",
 ]
 for filename in files_to_move:
-    f = config.ANALYSIS_DIR / filename
-    if f.exists():
-        shutil.move(str(f), str(config.RAW_REPORTS_DIR / filename))
+    source = config.ANALYSIS_DIR / filename
+    destination = config.RAW_REPORTS_DIR / filename
+    if source.exists():
+        shutil.move(str(source), str(destination))
+    elif destination.exists():
+        print(f"Already organized: {destination.name}")
 
 print("\nFINAL CSV DATASETS READY:")
 csv_files = list(config.ANALYSIS_DIR.glob(f"{SAMPLE}_*.csv"))

@@ -47,11 +47,18 @@ bowtie2_cmd = [
 ]
 with open(bam_file, "wb") as bam_out:
     bowtie_proc = subprocess.Popen(bowtie2_cmd, stdout=subprocess.PIPE)
-    subprocess.run(
-        [str(config.SAMTOOLS_BIN), "view", "-b", "-f", "12"],
-        stdin=bowtie_proc.stdout, stdout=bam_out, check=True,
-    )
-    bowtie_proc.wait()
+    try:
+        subprocess.run(
+            [str(config.SAMTOOLS_BIN), "view", "-b", "-f", "12"],
+            stdin=bowtie_proc.stdout, stdout=bam_out, check=True,
+        )
+    finally:
+        if bowtie_proc.stdout is not None:
+            bowtie_proc.stdout.close()
+
+    bowtie_returncode = bowtie_proc.wait()
+    if bowtie_returncode != 0:
+        sys.exit(f"ERROR: Bowtie2 failed during host depletion (exit code {bowtie_returncode})")
 
 if not bam_file.exists() or bam_file.stat().st_size < 1000:
     sys.exit("ERROR: BAM file empty or missing - check alignment")

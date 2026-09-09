@@ -17,7 +17,7 @@ Raw FASTQ
 05  Host DNA depletion (Bowtie2 + Samtools)
 06  Post-depletion QC & compression
 07  Deduplication (BBTools repair + Clumpify)
-08  Read normalization / down-sampling (seqtk)      *see "Known gaps"
+08  Read normalization / down-sampling (seqtk)
 09  Dataset validation & gold-standard packaging
 10  Downstream analysis: Kraken2, MetaPhlAn, DeepARG, MEGAHIT
 11  Raw outputs → CSV
@@ -117,13 +117,14 @@ previous stage's output already exists.
 - The pipeline currently processes exactly one paired-end sample per run.
 - Stage 08 is part of the canonical data flow. It creates the normalized
   dataset consumed by stages 09–12. If the read count is already below the
-  target depth, the reads are copied unchanged so the downstream stages
-  always have a defined input.
+  target depth, the reads are copied unchanged so downstream stages always
+  have a defined input. Stage 09 validates both paired-read counts and read
+  identifiers before creating the gold-standard dataset.
 - MetaPhlAn and DeepARG (stage 10) are currently run on R1 only. Confirm this
   choice against the requirements of your study and the versions of those
   tools that you validate.
-- Stage 10 runs its four analyses independently, reports PASS/FAIL status,
-  and exits non-zero if one or more analyses fail.
+- Stage 10 runs its four analyses independently, reports PASS/FAIL status for
+  each tool, and exits non-zero if one or more analyses fail.
 - The repository intentionally excludes FASTQ/BAM/SAM files, third-party
   binaries, and large reference databases. Configure their locations in
   `.env` rather than committing machine-specific paths.
