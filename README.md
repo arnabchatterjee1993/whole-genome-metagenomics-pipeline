@@ -1,7 +1,7 @@
-# Shotgun Metagenomics Preprocessing & Analysis Pipeline
+# Whole-genome Metagenomics Preprocessing & Analysis Pipeline
 
 A 12-stage command-line pipeline that takes raw paired-end FASTQ reads from
-a shotgun metagenomic sample through quality control, trimming, host
+a Whole-genome metagenomic sample through quality control, trimming, host
 (human) DNA depletion, deduplication, and into taxonomic classification,
 species abundance profiling, antibiotic-resistance gene detection, and
 metagenomic assembly — with tidy CSV reports at the end.
