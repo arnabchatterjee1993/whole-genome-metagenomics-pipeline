@@ -68,8 +68,8 @@ intentionally not part of this repo.
 
 1. Clone the repo and install Python deps:
    ```bash
-   git clone https://github.com/<your-username>/<repo-name>.git
-   cd <repo-name>
+   git clone https://github.com/arnabchatterjee1993/whole-genome-metagenomics-pipeline.git
+   cd whole-genome-metagenomics-pipeline
    pip install -r requirements.txt
    ```
 2. Install the external tools above and note their install paths.
