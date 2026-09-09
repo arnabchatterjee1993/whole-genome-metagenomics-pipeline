@@ -1,0 +1,16 @@
+# Pipeline data & outputs (large, machine/run-specific — never commit)
+pipeline_run/
+tools/
+*.fastq
+*.fastq.gz
+*.bam
+*.sam
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
